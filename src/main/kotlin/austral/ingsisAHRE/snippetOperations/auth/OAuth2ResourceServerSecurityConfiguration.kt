@@ -21,24 +21,26 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 class OAuth2ResourceServerSecurityConfiguration(
     @Value("\${auth0.audience}")
     val audience: String,
-    @Value("\${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
+    @Value("\${auth0.issuer.uri}")
     val issuer: String,
+    @Value("\${ui.url}")
+    val uiUrl: String,
 ) {
     @Bean
     fun filterChain(http: HttpSecurity): SecurityFilterChain {
-        http.authorizeHttpRequests {
-            it.anyRequest().authenticated()
+        return http.authorizeHttpRequests {
+            it.anyRequest().hasAuthority("SCOPE_write:snippets")
         }
             .oauth2ResourceServer { it.jwt(withDefaults()) }
             .cors { it.configurationSource(corsConfigurationSource()) }
             .csrf { it.disable() }
-        return http.build()
+            .build()
     }
 
     @Bean
     fun corsConfigurationSource(): UrlBasedCorsConfigurationSource {
         val corsConfiguration = CorsConfiguration()
-        corsConfiguration.allowedOrigins = listOf("http://localhost:5173")
+        corsConfiguration.allowedOrigins = listOf(uiUrl)
         corsConfiguration.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
         corsConfiguration.allowedHeaders = listOf("*")
         corsConfiguration.allowCredentials = false

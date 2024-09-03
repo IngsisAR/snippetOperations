@@ -17,7 +17,7 @@ class Auth0Service
     @Autowired
     constructor(
         private val rest: RestTemplate,
-        @Value("\${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
+        @Value("\${auth0.issuer.uri}")
         private val auth0Url: String,
         @Value("\${auth0.management.token}")
         private val token: String,
