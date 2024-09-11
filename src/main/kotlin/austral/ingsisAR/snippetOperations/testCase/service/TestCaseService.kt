@@ -125,12 +125,6 @@ class TestCaseService
         fun getSnippetTestCases(snippetId: String): List<GetTestCaseDTO> {
             logger.info("Getting Snippet($snippetId) test cases")
 
-            val snippet: Snippet =
-                snippetRepository.findById(snippetId).orElseThrow {
-                    logger.info("Snippet($snippetId) not found")
-                    NotFoundException("Snippet not found")
-                }
-
             return testCaseRepository.findAllBySnippetId(snippetId).map {
                 GetTestCaseDTO(
                     id = it.id!!,
