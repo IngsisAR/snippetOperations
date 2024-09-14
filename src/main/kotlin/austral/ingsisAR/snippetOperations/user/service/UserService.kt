@@ -1,7 +1,7 @@
 package austral.ingsisAR.snippetOperations.user.service
 
 import austral.ingsisAR.snippetOperations.integration.Auth0ManagementService
-import austral.ingsisAR.snippetOperations.user.model.dto.PaginatedUsersDTO
+import austral.ingsisAR.snippetOperations.user.model.dto.UsersDTO
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 
@@ -12,15 +12,13 @@ class UserService(
 ) {
     fun getUsers(
         userId: String,
-        pageNumber: Int,
-        pageSize: Int,
         name: String,
-    ): PaginatedUsersDTO {
-        val users = auth0ManagementService.getUsers(pageNumber, pageSize, name)
+    ): UsersDTO {
+        val users = auth0ManagementService.getUsers(name)
         if (users.hasBody()) {
-            return PaginatedUsersDTO(users.body!!.filter { it.user_id != userId }, users.body!!.size)
+            return UsersDTO(users.body!!.filter { it.user_id != userId }, users.body!!.size)
         }
-        return PaginatedUsersDTO(listOf(), 0)
+        return UsersDTO(listOf(), 0)
     }
 
     fun getUserById(userId: String): String {

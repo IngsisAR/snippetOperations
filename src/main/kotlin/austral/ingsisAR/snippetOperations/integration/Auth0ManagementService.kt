@@ -38,15 +38,11 @@ class Auth0ManagementService
         @Value("\${auth0.management.audience}")
         private val audience: String,
     ) {
-        fun getUsers(
-            page: Int,
-            perPage: Int,
-            name: String,
-        ): ResponseEntity<List<UserDTO>> {
+        fun getUsers(name: String): ResponseEntity<List<UserDTO>> {
             try {
                 val request: HttpEntity<Void> = HttpEntity(getHeaders())
                 return rest.exchange<List<UserDTO>>(
-                    "{$audience}users?fields=user_id,nickname&per_page=5&page=0&q=nickname:*$name*",
+                    "${audience}users?fields=user_id,nickname&search_engine=v3&q=nickname:$name*+OR+name:$name*&sort=nickname:1",
                     HttpMethod.GET,
                     request,
                 )

@@ -75,7 +75,7 @@ class TestCaseService
                 name = newTestCase.name,
                 inputs = testCase.inputs,
                 expectedOutputs = testCase.expectedOutputs,
-                envs = testCase.envs,
+                envs = testCase.envs.joinToString(";") { "${it.key}=${it.value}" },
             )
         }
 
@@ -118,21 +118,21 @@ class TestCaseService
                 name = testCaseEntity.name,
                 inputs = testCase.inputs,
                 expectedOutputs = testCase.expectedOutputs,
-                envs = testCase.envs,
+                envs = testCase.envs.joinToString(";") { "${it.key}=${it.value}" },
             )
         }
 
         fun getSnippetTestCases(snippetId: String): List<GetTestCaseDTO> {
             logger.info("Getting Snippet($snippetId) test cases")
 
-            return testCaseRepository.findAllBySnippetId(snippetId).map {
+            return testCaseRepository.findAllBySnippetId(snippetId).map { testCase ->
                 GetTestCaseDTO(
-                    id = it.id!!,
-                    snippetId = it.snippet.id!!,
-                    name = it.name,
-                    inputs = it.inputs.map { it.input },
-                    expectedOutputs = it.expectedOutputs.map { it.output },
-                    envs = it.envs.map { TestCaseEnvDTO(it.key, it.value) },
+                    id = testCase.id!!,
+                    snippetId = testCase.snippet.id!!,
+                    name = testCase.name,
+                    inputs = testCase.inputs.map { it.input },
+                    expectedOutputs = testCase.expectedOutputs.map { it.output },
+                    envs = testCase.envs.joinToString(";") { "${it.key}=${it.value}" },
                 )
             }
         }
