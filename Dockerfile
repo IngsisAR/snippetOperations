@@ -29,4 +29,4 @@ ENV NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
 WORKDIR /app
 EXPOSE ${PORT}
 
-ENTRYPOINT ["java", "-javaagent:/newrelic.jar", "-jar", "/app/snippetOperations.jar"]
+ENTRYPOINT ["java", "-javaagent:/newrelic.jar", "-Dnewrelic.config.license_key=${NEW_RELIC_LICENSE_KEY}", "-jar", "/app/snippetOperations.jar"]
