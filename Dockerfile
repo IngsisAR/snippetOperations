@@ -14,12 +14,6 @@ ENV USERNAME=${USERNAME}
 ARG TOKEN
 ENV TOKEN=${TOKEN}
 
-ARG NEW_RELIC_LICENSE_KEY
-ENV NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
-
-ARG NEW_RELIC_APP_NAME
-ENV NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME}
-
 RUN gradle build --no-daemon
 
 # Etapa 2: Runtime
@@ -29,8 +23,12 @@ COPY --from=build /home/gradle/src/build/libs/*.jar /app/snippetOperations.jar
 COPY --from=build /home/gradle/src/newrelic/newrelic.jar /newrelic.jar
 COPY --from=build /home/gradle/src/newrelic/newrelic.yml /newrelic.yml
 
+ARG NEW_RELIC_APP_NAME
+ARG NEW_RELIC_LICENSE_KEY
+ENV NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME}
+ENV NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
+
 WORKDIR /app
 EXPOSE ${PORT}
 
-ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=production", "-javaagent:/newrelic.jar", "-Dnewrelic.config.license_key=${NEW_RELIC_LICENSE_KEY}", "-Dnewlic.config.app_name=${NEW_RELIC_APP_NAME}", "/app/snippetOperations.jar"]
-
+ENTRYPOINT ["java", "-javaagent:/newrelic.jar", "-jar", "/app/snippetOperations.jar"]
