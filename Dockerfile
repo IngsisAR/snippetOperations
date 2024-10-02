@@ -23,9 +23,7 @@ COPY --from=build /home/gradle/src/build/libs/*.jar /app/snippetOperations.jar
 COPY --from=build /home/gradle/src/newrelic/newrelic.jar /newrelic.jar
 COPY --from=build /home/gradle/src/newrelic/newrelic.yml /newrelic.yml
 
-ARG NEW_RELIC_APP_NAME
 ARG NEW_RELIC_LICENSE_KEY
-ENV NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME}
 ENV NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
 
 WORKDIR /app
