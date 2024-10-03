@@ -157,7 +157,7 @@ class TestCaseService
             logger.info("Getting Snippet(${testCase.snippet.id}) content")
             val snippetContent = assetService.getSnippet(testCase.snippet.id!!)
             if (!snippetContent.statusCode.is2xxSuccessful) {
-                logger.info("Error getting Snippet(${testCase.snippet.id}) content from asset service")
+                logger.error("Error getting Snippet(${testCase.snippet.id}) content from asset service")
                 throw ConflictException("Error getting Snippet content")
             }
 
@@ -170,7 +170,7 @@ class TestCaseService
                 )
 
             if (!result.statusCode.is2xxSuccessful) {
-                logger.info("Error running Snippet(${testCase.snippet.id})")
+                logger.error("Error running Snippet(${testCase.snippet.id})")
                 throw ConflictException("Error running Snippet")
             }
 

@@ -103,28 +103,28 @@ class SnippetService
             logger.info("Getting snippet permissions for User($userId)")
             val permissions = permissionService.getAllSnippetPermissions(userId, token, pageNumber, pageSize)
             if (!permissions.statusCode.is2xxSuccessful) {
-                logger.info("Error getting snippets permissions for User($userId)")
+                logger.error("Error getting snippets permissions for User($userId)")
                 throw ConflictException("Error getting snippets permissions")
             }
             val snippets =
                 permissions.body!!.permissions.map {
                     val snippetEntity = snippetRepository.findById(it.snippetId)
                     if (snippetEntity.isEmpty) {
-                        logger.info("Snippet(${it.snippetId}) not found")
+                        logger.error("Snippet(${it.snippetId}) not found")
                         throw NotFoundException("Snippet not found")
                     }
 
                     logger.info("Getting Snippet(${it.snippetId}) content from asset service")
                     val content = assetService.getSnippet(it.snippetId)
                     if (!content.statusCode.is2xxSuccessful) {
-                        logger.info("Error getting Snippet(${it.snippetId}) content from asset service")
+                        logger.error("Error getting Snippet(${it.snippetId}) content from asset service")
                         throw ConflictException("Error getting Snippet content")
                     }
 
                     logger.info("Getting Snippet(${it.snippetId}) status for User($userId)")
                     val status = userSnippetRepository.findFirstBySnippetIdAndUserId(it.snippetId, userId)
                     if (status == null) {
-                        logger.info("Snippet(${it.snippetId}) status not found for User($userId)")
+                        logger.error("Snippet(${it.snippetId}) status not found for User($userId)")
                         throw NotFoundException("Snippet status not found")
                     }
 
@@ -150,21 +150,21 @@ class SnippetService
 
             val snippet = snippetRepository.findById(snippetId)
             if (snippet.isEmpty) {
-                logger.info("Snippet($snippetId) not found")
+                logger.error("Snippet($snippetId) not found")
                 throw NotFoundException("Snippet not found")
             }
 
             logger.info("Getting Snippet($snippetId) content from asset service")
             val content = assetService.getSnippet(snippetId)
             if (!content.statusCode.is2xxSuccessful) {
-                logger.info("Error getting Snippet($snippetId) content from asset service")
+                logger.error("Error getting Snippet($snippetId) content from asset service")
                 throw ConflictException("Error getting Snippet content")
             }
 
             logger.info("Getting Snippet($snippetId) author")
             val author = permissionService.getAuthorBySnippetId(snippetId, token)
             if (!author.statusCode.is2xxSuccessful) {
-                logger.info("Error getting Snippet($snippetId) author")
+                logger.error("Error getting Snippet($snippetId) author")
                 throw ConflictException("Error getting Snippet author")
             }
 
@@ -185,7 +185,7 @@ class SnippetService
 
             val snippetEntity = snippetRepository.findById(snippet.snippetId)
             if (snippetEntity.isEmpty) {
-                logger.info("Snippet(${snippet.snippetId}) not found")
+                logger.error("Snippet(${snippet.snippetId}) not found")
                 throw NotFoundException("Snippet not found")
             }
 
@@ -201,7 +201,7 @@ class SnippetService
                 logger.info("Creating User(${snippet.userId}) Pending Snippet(${snippet.snippetId}) Status")
                 createUserPendingSnippet(snippet.userId, snippetEntity.get())
             } else {
-                logger.info("Error creating Snippet(${snippet.snippetId}) SHARED permissions for User(${snippet.userId})")
+                logger.error("Error creating Snippet(${snippet.snippetId}) SHARED permissions for User(${snippet.userId})")
                 throw ConflictException("Error creating snippet permissions")
             }
         }
@@ -222,14 +222,14 @@ class SnippetService
             logger.info("Deleting Snippet($snippetId) content from asset service")
             val assetResponse = assetService.deleteSnippet(snippetId)
             if (!assetResponse.statusCode.is2xxSuccessful) {
-                logger.info("Error deleting Snippet($snippetId) content from asset service")
+                logger.error("Error deleting Snippet($snippetId) content from asset service")
                 throw ConflictException("Error deleting Snippet content")
             }
 
             logger.info("Deleting Snippet($snippetId) permissions")
             val permissionResponse = permissionService.deleteSnippetPermissions(snippetId, token)
             if (!permissionResponse.statusCode.is2xxSuccessful) {
-                logger.info("Error deleting Snippet($snippetId) permissions")
+                logger.error("Error deleting Snippet($snippetId) permissions")
                 throw ConflictException("Error deleting Snippet permissions")
             }
 
@@ -246,7 +246,7 @@ class SnippetService
 
             val snippetEntity = snippetRepository.findById(snippetId)
             if (snippetEntity.isEmpty) {
-                logger.info("Snippet($snippetId) not found")
+                logger.error("Snippet($snippetId) not found")
                 throw NotFoundException("Snippet not found")
             }
 
@@ -267,7 +267,7 @@ class SnippetService
             logger.info("Getting Snippet($snippetId) author")
             val author = permissionService.getAuthorBySnippetId(snippetId, token)
             if (!author.statusCode.is2xxSuccessful) {
-                logger.info("Error getting Snippet($snippetId) author")
+                logger.error("Error getting Snippet($snippetId) author")
                 throw ConflictException("Error getting Snippet author")
             }
 
