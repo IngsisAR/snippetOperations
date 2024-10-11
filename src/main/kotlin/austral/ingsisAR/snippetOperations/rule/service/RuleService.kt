@@ -54,6 +54,7 @@ class RuleService
             try {
                 userRuleRepository.saveAll(userRules)
             } catch (e: Exception) {
+                logger.error("Error saving default rules for User($userId)")
                 return
             }
         }
