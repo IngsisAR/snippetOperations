@@ -78,8 +78,10 @@ jobs:
       - name: Add SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          if [ ! -f ~/.ssh/id_rsa ]; then
+          echo "$DEV_SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+          fi
           ssh-keyscan ${{ secrets.DEV_IP }} >> ~/.ssh/known_hosts
 
       - name: Deploy to Development
@@ -87,7 +89,7 @@ jobs:
           ssh ingsisAHRE@${{ secrets.DEV_IP }} << 'EOF'
             cd snippetInfra
             sudo su
-            docker pull ${{ env.REGISTRY }}/$(echo "${{ github.repository }}-dev" | tr '[:upper:]' '[:lower:]'):main
+            docker-compose -f docker-compose.dev.yml pull snippet_operations
             docker-compose -f docker-compose.dev.yml up -d snippet_operations
             docker image prune -f
           EOF
