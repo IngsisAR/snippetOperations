@@ -86,9 +86,9 @@ jobs:
           ssh ingsisAHRE@${{ secrets.PROD_IP }} << 'EOF'
             cd snippetInfra
             sudo su
-            docker container stop snippet_operations
-            docker container rm snippet_operations
-            docker-compose -f docker-compose.prod.yml pull snippet_operations
-            docker-compose -f docker-compose.prod.yml up -d snippet_operations
+            docker container stop snippet-operations
+            docker container rm snippet-operations
+            docker-compose -f docker-compose.prod.yml pull snippet-operations
+            docker-compose -f docker-compose.prod.yml up -d snippet-operations
             docker image prune -f
           EOF
