@@ -9,8 +9,8 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Component
+import org.springframework.web.client.HttpClientErrorException
 import org.springframework.web.client.RestTemplate
-import org.springframework.web.client.postForEntity
 
 @Component
 class AssetService
@@ -24,11 +24,14 @@ class AssetService
             snippetId: String,
             content: String,
         ): ResponseEntity<String> {
-            try {
+            return try {
                 val request = HttpEntity(content, getHeaders())
-                return rest.postForEntity("$bucketUrl/$snippetId", request, String::class.java)
+                rest.put("$bucketUrl/$snippetId", request)
+                ResponseEntity.ok("Snippet saved successfully.")
+            } catch (e: HttpClientErrorException) {
+                ResponseEntity.status(e.statusCode).body(e.responseBodyAsString)
             } catch (e: Exception) {
-                return ResponseEntity.badRequest().build()
+                ResponseEntity.badRequest().body("Error saving snippet: ${e.message}")
             }
         }
 
@@ -36,10 +39,14 @@ class AssetService
             snippetId: String,
             content: String,
         ): ResponseEntity<String> {
-            try {
-                return rest.postForEntity("$bucketUrl/$snippetId", content)
+            return try {
+                val request = HttpEntity(content, getHeaders())
+                rest.put("$bucketUrl/$snippetId", request)
+                ResponseEntity.ok("Snippet updated successfully.")
+            } catch (e: HttpClientErrorException) {
+                ResponseEntity.status(e.statusCode).body(e.responseBodyAsString)
             } catch (e: Exception) {
-                return ResponseEntity.badRequest().build()
+                ResponseEntity.badRequest().body("Error updating snippet: ${e.message}")
             }
         }
 
