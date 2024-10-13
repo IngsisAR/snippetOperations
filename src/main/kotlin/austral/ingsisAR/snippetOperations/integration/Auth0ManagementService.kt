@@ -37,6 +37,8 @@ class Auth0ManagementService
         private val clientSecret: String,
         @Value("\${auth0.management.audience}")
         private val audience: String,
+        @Value("\${environment.file.path}")
+        private val envFilePath: String,
     ) {
         fun getUsers(name: String): ResponseEntity<List<UserDTO>> {
             try {
@@ -122,7 +124,7 @@ class Auth0ManagementService
             key: String,
             value: String,
         ) {
-            val envFile = File("env/operations.env")
+            val envFile = File(envFilePath)
             val lines = envFile.readLines().toMutableList()
             val index = lines.indexOfFirst { it.startsWith("$key=") }
             if (index != -1) {
