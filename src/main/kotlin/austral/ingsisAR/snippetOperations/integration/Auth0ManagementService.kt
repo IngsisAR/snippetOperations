@@ -99,7 +99,7 @@ class Auth0ManagementService
         private fun getHeaders(): HttpHeaders {
             if (isTokenExpired(managementToken)) {
                 managementToken = requestNewManagementToken()
-                updateEnvironmentVariable("AUTH0_MANAGEMENT_TOKEN", managementToken)
+                updateManagementTokenEnv(managementToken)
             }
             return HttpHeaders().apply {
                 contentType = MediaType.APPLICATION_JSON
@@ -120,19 +120,21 @@ class Auth0ManagementService
             return now >= exp
         }
 
-        private fun updateEnvironmentVariable(
-            key: String,
-            value: String,
-        ) {
-            val envFile = File(envFilePath)
-            val lines = envFile.readLines().toMutableList()
-            val index = lines.indexOfFirst { it.startsWith("$key=") }
-            if (index != -1) {
-                lines[index] = "$key=$value"
+        private fun updateManagementTokenEnv(value: String) {
+            val key = "AUTH0_MANAGEMENT_TOKEN"
+            if (envFilePath.isEmpty() || envFilePath.isBlank()) {
+                System.setProperty(key, value)
             } else {
-                lines.add("$key=$value")
+                val envFile = File(envFilePath)
+                val lines = envFile.readLines().toMutableList()
+                val index = lines.indexOfFirst { it.startsWith("$key=") }
+                if (index != -1) {
+                    lines[index] = "$key=$value"
+                } else {
+                    lines.add("$key=$value")
+                }
+                envFile.writeText(lines.joinToString("\n"))
             }
-            envFile.writeText(lines.joinToString("\n"))
         }
     }
 
