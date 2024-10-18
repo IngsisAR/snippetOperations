@@ -33,6 +33,10 @@ class RuleService
         private val logger: Logger = LoggerFactory.getLogger(RuleService::class.java)
 
         fun createUserDefaultRules(userId: String) {
+            if (userRuleRepository.existsByUserId(userId)) {
+                return
+            }
+
             logger.info("Creating default rules for User($userId)")
 
             val rules = ruleRepository.findAll()
