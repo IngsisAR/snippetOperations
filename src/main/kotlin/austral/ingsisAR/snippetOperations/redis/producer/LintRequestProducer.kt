@@ -19,7 +19,7 @@ class LintRequestProducer
         private val logger: Logger = LoggerFactory.getLogger(LintRequestProducer::class.java)
 
         suspend fun publishEvent(event: String) {
-            logger.info("Publishing lint request")
+            logger.info("Publishing lint request event:\n$event")
             emit(event)
         }
     }

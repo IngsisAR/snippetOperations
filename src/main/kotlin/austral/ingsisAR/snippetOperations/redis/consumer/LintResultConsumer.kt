@@ -23,8 +23,8 @@ class LintResultConsumer
         @Value("\${redis.streams.lintResult}")
         streamName: String,
         @Value("\${redis.groups.lint}")
-        groupName: String,
-        redis: RedisTemplate<String, String>,
+        val groupName: String,
+        private val redis: RedisTemplate<String, String>,
         private val snippetService: SnippetService,
         private val objectMapper: ObjectMapper,
     ) : RedisStreamConsumer<String>(streamName, groupName, redis) {
@@ -33,16 +33,22 @@ class LintResultConsumer
         }
         private val logger: Logger = LoggerFactory.getLogger(LintResultConsumer::class.java)
 
-        override fun onMessage(record: ObjectRecord<String, String>) {
-            val lintResult: LintResultEvent = objectMapper.readValue(record.value)
-            logger.info("Consuming lint result for Snippet(${lintResult.snippetId}) for User(${lintResult.userId})")
+        override fun onMessage(record: ObjectRecord<String, String>): Unit =
+            run {
+                val lintResult: LintResultEvent = objectMapper.readValue(record.value)
+                logger.info("Consuming lint result for Snippet(${lintResult.snippetId}) for User(${lintResult.userId})")
 
-            snippetService.updateUserSnippetStatusBySnippetId(
-                lintResult.userId,
-                lintResult.snippetId,
-                parseLintStatus(lintResult.status),
-            )
-        }
+                try {
+                    snippetService.updateUserSnippetStatusBySnippetId(
+                        lintResult.userId,
+                        lintResult.snippetId,
+                        parseLintStatus(lintResult.status),
+                    )
+                    redis.opsForStream<String, String>().acknowledge(groupName, record)
+                } catch (ex: Exception) {
+                    logger.error("Error processing lint result: ${ex.message}")
+                }
+            }
 
         override fun options(): StreamReceiver.StreamReceiverOptions<String, ObjectRecord<String, String>> {
             return StreamReceiver.StreamReceiverOptions.builder()

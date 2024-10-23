@@ -131,7 +131,6 @@ class RuleService
         ) {
             val userRules = getUserRulesByType(userId, RuleType.LINTING)
             snippetIds.forEach {
-                logger.info("Publishing lint request for Snippet($it) for User($userId)")
                 lintRequestProducer.publishEvent(
                     objectMapper.writeValueAsString(
                         LintRequestEvent(
