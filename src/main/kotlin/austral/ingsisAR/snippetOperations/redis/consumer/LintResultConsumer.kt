@@ -33,22 +33,21 @@ class LintResultConsumer
         }
         private val logger: Logger = LoggerFactory.getLogger(LintResultConsumer::class.java)
 
-        override fun onMessage(record: ObjectRecord<String, String>): Unit =
-            run {
-                val lintResult: LintResultEvent = objectMapper.readValue(record.value)
-                logger.info("Consuming lint result for Snippet(${lintResult.snippetId}) for User(${lintResult.userId})")
+        override fun onMessage(record: ObjectRecord<String, String>) {
+            val lintResult: LintResultEvent = objectMapper.readValue(record.value)
+            logger.info("Consuming lint result for Snippet(${lintResult.snippetId}) for User(${lintResult.userId})")
 
-                try {
-                    snippetService.updateUserSnippetStatusBySnippetId(
-                        lintResult.userId,
-                        lintResult.snippetId,
-                        parseLintStatus(lintResult.status),
-                    )
-                    redis.opsForStream<String, String>().acknowledge(groupName, record)
-                } catch (ex: Exception) {
-                    logger.error("Error processing lint result: ${ex.message}")
-                }
+            try {
+                snippetService.updateUserSnippetStatusBySnippetId(
+                    lintResult.userId,
+                    lintResult.snippetId,
+                    parseLintStatus(lintResult.status),
+                )
+                redis.opsForStream<String, String>().acknowledge(groupName, record)
+            } catch (ex: Exception) {
+                logger.error("Error processing lint result: ${ex.message}")
             }
+        }
 
         override fun options(): StreamReceiver.StreamReceiverOptions<String, ObjectRecord<String, String>> {
             return StreamReceiver.StreamReceiverOptions.builder()
