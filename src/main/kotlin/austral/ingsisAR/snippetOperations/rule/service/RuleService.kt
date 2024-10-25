@@ -15,6 +15,8 @@ import austral.ingsisAR.snippetOperations.snippet.model.entity.UserSnippet
 import austral.ingsisAR.snippetOperations.snippet.model.enum.SnippetStatus
 import austral.ingsisAR.snippetOperations.snippet.service.SnippetService
 import com.fasterxml.jackson.databind.ObjectMapper
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -31,6 +33,7 @@ class RuleService
         private val objectMapper: ObjectMapper,
     ) {
         private val logger: Logger = LoggerFactory.getLogger(RuleService::class.java)
+        private val publishRetry: Int = 3
 
         fun createUserDefaultRules(userId: String) {
             if (userRuleRepository.existsByUserId(userId)) {
@@ -130,16 +133,29 @@ class RuleService
             snippetIds: List<String>,
         ) {
             val userRules = getUserRulesByType(userId, RuleType.LINTING)
-            snippetIds.forEach {
-                lintRequestProducer.publishEvent(
-                    objectMapper.writeValueAsString(
-                        LintRequestEvent(
-                            userId = userId,
-                            snippetId = it,
-                            linterRules = parseLintingRules(userRules),
-                        ),
-                    ),
-                )
+
+            // Ejecutar la publicación de eventos de manera concurrente
+            coroutineScope {
+                snippetIds.forEach { id ->
+                    launch {
+                        repeat(publishRetry) {
+                            try {
+                                lintRequestProducer.publishEvent(
+                                    objectMapper.writeValueAsString(
+                                        LintRequestEvent(
+                                            userId = userId,
+                                            snippetId = id,
+                                            linterRules = parseLintingRules(userRules),
+                                        ),
+                                    ),
+                                )
+                                return@launch // Salir una vez que la publicación es exitosa
+                            } catch (e: Exception) {
+                                logger.error("Error publishing lint request event for Snippet($id) for User($userId)")
+                            }
+                        }
+                    }
+                }
             }
         }
 

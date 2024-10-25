@@ -6,6 +6,11 @@ import austral.ingsisAR.snippetOperations.snippet.model.enum.SnippetStatus
 import austral.ingsisAR.snippetOperations.snippet.service.SnippetService
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import jakarta.annotation.PreDestroy
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import org.austral.ingsis.redis.RedisStreamConsumer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -24,28 +29,36 @@ class LintResultConsumer
         streamName: String,
         @Value("\${redis.groups.lint}")
         val groupName: String,
-        private val redis: RedisTemplate<String, String>,
+        redis: RedisTemplate<String, String>,
         private val snippetService: SnippetService,
         private val objectMapper: ObjectMapper,
-    ) : RedisStreamConsumer<String>(streamName, groupName, redis) {
-        init {
-            subscription()
-        }
+    ) : RedisStreamConsumer<String>(streamName, groupName, redis), CoroutineScope {
         private val logger: Logger = LoggerFactory.getLogger(LintResultConsumer::class.java)
 
-        override fun onMessage(record: ObjectRecord<String, String>) {
-            val lintResult: LintResultEvent = objectMapper.readValue(record.value)
-            logger.info("Consuming lint result for Snippet(${lintResult.snippetId}) for User(${lintResult.userId})")
+        // Define a coroutine scope tied to the lifecycle of the component
+        private val job = Job()
+        override val coroutineContext = Dispatchers.IO + job
 
-            try {
-                snippetService.updateUserSnippetStatusBySnippetId(
-                    lintResult.userId,
-                    lintResult.snippetId,
-                    parseLintStatus(lintResult.status),
-                )
-                redis.opsForStream<String, String>().acknowledge(groupName, record)
-            } catch (ex: Exception) {
-                logger.error("Error processing lint result: ${ex.message}")
+        // Ensure coroutines are properly cancelled when the component is destroyed
+        @PreDestroy
+        fun cleanup() {
+            job.cancel()
+        }
+
+        override fun onMessage(record: ObjectRecord<String, String>) {
+            launch {
+                try {
+                    val lintResult: LintResultEvent = objectMapper.readValue(record.value)
+                    logger.info("Consuming lint result for Snippet(${lintResult.snippetId}) for User(${lintResult.userId})")
+
+                    snippetService.updateUserSnippetStatusBySnippetId(
+                        lintResult.userId,
+                        lintResult.snippetId,
+                        parseLintStatus(lintResult.status),
+                    )
+                } catch (ex: Exception) {
+                    logger.error("Error processing lint result: ${ex.message}")
+                }
             }
         }
 
