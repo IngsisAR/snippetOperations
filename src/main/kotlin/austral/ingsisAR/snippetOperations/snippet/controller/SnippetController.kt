@@ -42,8 +42,9 @@ class SnippetController(
         @AuthenticationPrincipal jwt: Jwt,
         @RequestParam("page_number") pageNumber: Int,
         @RequestParam("page_size") pageSize: Int,
+        @RequestParam("snippetName") snippetName: String?,
     ): ResponseEntity<GetPaginatedSnippetWithStatusDTO> {
-        return ResponseEntity.ok(snippetService.getSnippets(jwt.subject, jwt.tokenValue, pageNumber, pageSize))
+        return ResponseEntity.ok(snippetService.getSnippets(jwt.subject, jwt.tokenValue, pageNumber, pageSize, snippetName))
     }
 
     @PutMapping("/{snippetId}")

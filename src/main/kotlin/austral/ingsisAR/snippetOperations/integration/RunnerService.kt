@@ -36,6 +36,7 @@ class RunnerService
 
         fun formatSnippet(
             content: String,
+            language: String,
             formatterRules: FormatterRulesDTO,
             token: String,
         ): ResponseEntity<String> {
@@ -44,6 +45,7 @@ class RunnerService
                     HttpEntity(
                         FormatSnippetRequestDTO(
                             content = content,
+                            language = language,
                             formatterRules = formatterRules,
                         ),
                         getHeaders(token),

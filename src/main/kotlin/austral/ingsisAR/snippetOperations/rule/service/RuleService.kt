@@ -1,8 +1,6 @@
 package austral.ingsisAR.snippetOperations.rule.service
 
 import austral.ingsisAR.snippetOperations.integration.FormatterRulesDTO
-import austral.ingsisAR.snippetOperations.redis.event.LintRequestEvent
-import austral.ingsisAR.snippetOperations.redis.event.LinterRulesDTO
 import austral.ingsisAR.snippetOperations.redis.producer.LintRequestProducer
 import austral.ingsisAR.snippetOperations.rule.model.dto.GetUserRuleDTO
 import austral.ingsisAR.snippetOperations.rule.model.dto.UpdateUserRuleDTO
@@ -14,9 +12,6 @@ import austral.ingsisAR.snippetOperations.shared.exception.NotFoundException
 import austral.ingsisAR.snippetOperations.snippet.model.entity.UserSnippet
 import austral.ingsisAR.snippetOperations.snippet.model.enum.SnippetStatus
 import austral.ingsisAR.snippetOperations.snippet.service.SnippetService
-import com.fasterxml.jackson.databind.ObjectMapper
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -30,10 +25,8 @@ class RuleService
         private val userRuleRepository: UserRuleRepository,
         private val snippetService: SnippetService,
         private val lintRequestProducer: LintRequestProducer,
-        private val objectMapper: ObjectMapper,
     ) {
         private val logger: Logger = LoggerFactory.getLogger(RuleService::class.java)
-        private val publishRetry: Int = 3
 
         fun createUserDefaultRules(userId: String) {
             if (userRuleRepository.existsByUserId(userId)) {
@@ -112,7 +105,7 @@ class RuleService
                 logger.info("Linting rules updated for User($userId)")
 
                 val userSnippets: List<UserSnippet> = snippetService.updateUserSnippetsStatus(userId, SnippetStatus.PENDING)
-                publishLintEvents(userId, userSnippets.map { it.snippet.id!! })
+                lintRequestProducer.publishLintEvents(userId, userSnippets.map { it.snippet })
             }
 
             return rules.map {
@@ -126,50 +119,6 @@ class RuleService
                     value = if (it.active) it.value else it.rule.defaultValue,
                 )
             }
-        }
-
-        private suspend fun publishLintEvents(
-            userId: String,
-            snippetIds: List<String>,
-        ) {
-            val userRules = getUserRulesByType(userId, RuleType.LINTING)
-
-            // Ejecutar la publicación de eventos de manera concurrente
-            coroutineScope {
-                snippetIds.forEach { id ->
-                    launch {
-                        repeat(publishRetry) {
-                            try {
-                                lintRequestProducer.publishEvent(
-                                    objectMapper.writeValueAsString(
-                                        LintRequestEvent(
-                                            userId = userId,
-                                            snippetId = id,
-                                            linterRules = parseLintingRules(userRules),
-                                        ),
-                                    ),
-                                )
-                                return@launch // Salir una vez que la publicación es exitosa
-                            } catch (e: Exception) {
-                                logger.error("Error publishing lint request event for Snippet($id) for User($userId)")
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        fun parseLintingRules(rules: List<GetUserRuleDTO>): LinterRulesDTO {
-            val result = LinterRulesDTO()
-
-            rules.forEach {
-                when (it.name) {
-                    "printlnNoExpressionArguments" -> result.printlnNoExpressionArguments = it.value.toBoolean()
-                    "identifierCasing" -> result.identifierCasing = it.value
-                    "readInputNoExpressionArguments" -> result.readInputNoExpressionArguments = it.value.toBoolean()
-                }
-            }
-            return result
         }
 
         fun parseFormattingRules(rules: List<GetUserRuleDTO>): FormatterRulesDTO {

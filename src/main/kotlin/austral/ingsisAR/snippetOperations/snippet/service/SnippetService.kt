@@ -2,6 +2,7 @@ package austral.ingsisAR.snippetOperations.snippet.service
 
 import austral.ingsisAR.snippetOperations.integration.AssetService
 import austral.ingsisAR.snippetOperations.integration.SnippetPermissionService
+import austral.ingsisAR.snippetOperations.redis.producer.LintRequestProducer
 import austral.ingsisAR.snippetOperations.shared.exception.ConflictException
 import austral.ingsisAR.snippetOperations.shared.exception.NotFoundException
 import austral.ingsisAR.snippetOperations.snippet.model.dto.CreateSnippetDTO
@@ -18,10 +19,14 @@ import austral.ingsisAR.snippetOperations.snippet.repository.SnippetRepository
 import austral.ingsisAR.snippetOperations.snippet.repository.UserSnippetRepository
 import austral.ingsisAR.snippetOperations.user.service.UserService
 import jakarta.transaction.Transactional
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.util.Locale
 
 @Service
 class SnippetService
@@ -32,10 +37,10 @@ class SnippetService
         private val assetService: AssetService,
         private val permissionService: SnippetPermissionService,
         private val userService: UserService,
+        private val lintRequestProducer: LintRequestProducer,
     ) {
         private val logger: Logger = LoggerFactory.getLogger(SnippetService::class.java)
 
-        @Transactional
         fun createSnippet(
             snippet: CreateSnippetDTO,
             userId: String,
@@ -72,12 +77,18 @@ class SnippetService
                         token,
                     )
                 } catch (e: Exception) {
+                    snippetRepository.deleteById(snippetId)
+                    assetService.deleteSnippet(snippetId)
                     logger.error("Error creating Snippet($snippetId) OWNER permissions for User($userId)")
                     throw ConflictException("Error creating snippet permissions")
                 }
 
                 logger.info("Creating User($userId) Pending Snippet($snippetId) Status")
-                createUserPendingSnippet(userId, newSnippet)
+                createUserSnippet(userId, newSnippet, SnippetStatus.PENDING)
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    lintRequestProducer.publishLintEvents(userId, listOf(newSnippet))
+                }
 
                 return GetSnippetDTO(
                     id = snippetId,
@@ -88,6 +99,7 @@ class SnippetService
                 )
             } else {
                 logger.error("Error saving Snippet($snippetId) content on asset service: ${snippet.content}")
+                snippetRepository.deleteById(snippetId)
                 throw ConflictException("Error saving Snippet content on asset service")
             }
         }
@@ -97,6 +109,7 @@ class SnippetService
             token: String,
             pageNumber: Int,
             pageSize: Int,
+            snippetName: String?,
         ): GetPaginatedSnippetWithStatusDTO {
             logger.info("Getting snippets for User($userId)")
 
@@ -112,6 +125,12 @@ class SnippetService
                     if (snippetEntity.isEmpty) {
                         logger.error("Snippet(${it.snippetId}) not found")
                         throw NotFoundException("Snippet not found")
+                    }
+
+                    if (snippetName != null) {
+                        if (snippetName.isNotEmpty() && !snippetEntity.get().name.lowercase(Locale.getDefault()).contains(snippetName)) {
+                            return@map null
+                        }
                     }
 
                     logger.info("Getting Snippet(${it.snippetId}) content from asset service")
@@ -138,7 +157,7 @@ class SnippetService
                     )
                 }.toMutableList()
 
-            return GetPaginatedSnippetWithStatusDTO(snippets, permissions.body!!.total)
+            return GetPaginatedSnippetWithStatusDTO(snippets.filterNotNull(), permissions.body!!.total)
         }
 
         fun getSnippetById(
@@ -189,6 +208,8 @@ class SnippetService
                 throw NotFoundException("Snippet not found")
             }
 
+            val snippetStatus = snippetEntity.get().userSnippets.find { it.userId == snippet.userId }?.status
+
             logger.info("Creating Snippet(${snippet.snippetId}) SHARED permissions for User(${snippet.userId})")
             val body =
                 CreateSnippetPermissionDTO(
@@ -199,7 +220,7 @@ class SnippetService
             val permission = permissionService.createSnippetPermission(body, token)
             if (permission.statusCode.is2xxSuccessful) {
                 logger.info("Creating User(${snippet.userId}) Pending Snippet(${snippet.snippetId}) Status")
-                createUserPendingSnippet(snippet.userId, snippetEntity.get())
+                createUserSnippet(snippet.userId, snippetEntity.get(), snippetStatus!!)
             } else {
                 logger.error("Error creating Snippet(${snippet.snippetId}) SHARED permissions for User(${snippet.userId})")
                 throw ConflictException("Error creating snippet permissions")
@@ -271,6 +292,10 @@ class SnippetService
                 throw ConflictException("Error getting Snippet author")
             }
 
+            CoroutineScope(Dispatchers.IO).launch {
+                lintRequestProducer.publishLintEvents(author.body!!, listOf(snippetEntity.get()))
+            }
+
             return GetSnippetDTO(
                 id = snippetId,
                 name = snippetEntity.get().name,
@@ -280,16 +305,17 @@ class SnippetService
             )
         }
 
-        private fun createUserPendingSnippet(
+        private fun createUserSnippet(
             userId: String,
             snippet: Snippet,
+            status: SnippetStatus,
         ) {
-            logger.info("Creating User($userId) pending Snippet(${snippet.id})")
+            logger.info("Creating for User($userId) the Snippet(${snippet.id}) status $status")
             userSnippetRepository.save(
                 UserSnippet(
                     userId = userId,
                     snippet = snippet,
-                    status = SnippetStatus.PENDING,
+                    status = status,
                 ),
             )
         }

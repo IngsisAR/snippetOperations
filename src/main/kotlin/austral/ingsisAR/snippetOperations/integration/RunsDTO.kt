@@ -15,6 +15,7 @@ data class CreateRunDTO(
 
 data class FormatSnippetRequestDTO(
     val content: String,
+    val language: String?,
     val formatterRules: FormatterRulesDTO,
 )
 

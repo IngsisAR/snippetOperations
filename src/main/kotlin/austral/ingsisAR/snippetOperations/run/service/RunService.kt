@@ -30,6 +30,7 @@ class RunService
             val result =
                 runnerService.formatSnippet(
                     content = snippet.content,
+                    language = snippet.language,
                     formatterRules = ruleService.parseFormattingRules(rules),
                     token = token,
                 )
