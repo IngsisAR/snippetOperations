@@ -198,6 +198,7 @@ class SnippetService
 
         fun shareSnippet(
             snippet: ShareSnippetDTO,
+            requesterUserId: String,
             token: String,
         ) {
             logger.info("Sharing Snippet(${snippet.snippetId} with User(${snippet.userId})")
@@ -208,7 +209,7 @@ class SnippetService
                 throw NotFoundException("Snippet not found")
             }
 
-            val snippetStatus = snippetEntity.get().userSnippets.find { it.userId == snippet.userId }?.status
+            val snippetStatus = snippetEntity.get().userSnippets.find { it.userId == requesterUserId }?.status
 
             logger.info("Creating Snippet(${snippet.snippetId}) SHARED permissions for User(${snippet.userId})")
             val body =

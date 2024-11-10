@@ -78,7 +78,7 @@ class SnippetController(
         @Valid @RequestBody snippet: ShareSnippetDTO,
         @AuthenticationPrincipal jwt: Jwt,
     ): ResponseEntity<Void> {
-        snippetService.shareSnippet(snippet, jwt.tokenValue)
+        snippetService.shareSnippet(snippet, jwt.subject, jwt.tokenValue)
         return ResponseEntity.ok().build()
     }
 }
