@@ -117,6 +117,24 @@ tasks.jacocoTestCoverageVerification {
   }
 }
 
+jacocoTestReport {
+  dependsOn test
+  afterEvaluate {
+    classDirectories.setFrom(files(classDirectories.files.collect {
+      fileTree(dir: it, exclude: [
+        'austral/ingsisAR/snippetOperations/auth/**',
+        'austral/ingsisAR/snippetOperations/integration/**',
+        'austral/ingsisAR/snippetOperations/redis/producer/**',
+        'austral/ingsisAR/snippetOperations/SnippetOperationsApplicationKt.class',
+        'austral/ingsisAR/snippetOperations/SnippetOperationsApplication.class',
+        'austral/ingsisAR/snippetOperations/redis/consumer/**',
+        'austral/ingsisAR/snippetOperations/shared/exception/**',
+        'austral/ingsisAR/snippetOperations/redis/event/**',
+      ])
+    }))
+  }
+}
+
 tasks.register('downloadNewrelic', Download) {
   mkdir 'newrelic'
   src 'https://download.newrelic.com/newrelic/java-agent/newrelic-agent/current/newrelic-java.zip'

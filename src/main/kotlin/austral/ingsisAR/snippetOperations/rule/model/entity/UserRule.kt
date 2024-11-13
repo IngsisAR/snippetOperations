@@ -1,6 +1,7 @@
 package austral.ingsisAR.snippetOperations.rule.model.entity
 
 import austral.ingsisAR.snippetOperations.shared.baseModel.BaseModel
+import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
@@ -13,6 +14,7 @@ import jakarta.persistence.UniqueConstraint
 )
 data class UserRule(
     val userId: String,
+    @Column(name = "rule_value")
     var value: String,
     var active: Boolean,
     @ManyToOne
